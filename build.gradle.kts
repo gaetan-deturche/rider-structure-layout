@@ -84,7 +84,17 @@ val buildBackend by tasks.registering(Exec::class) {
     description = "Builds the ReSharper backend half of the plugin."
     group = "build"
     workingDir = layout.projectDirectory.asFile
-    commandLine("dotnet", "build", dotnetSolution.asFile.absolutePath, "-c", BuildConfiguration, "--nologo")
+    dependsOn(tasks.named("initializeIntellijPlatformPlugin"))
+
+    // The C++ backend assemblies are not in the JetBrains.Rider.SDK NuGet package, but they ARE in the
+    // Rider distribution the Gradle plugin downloads. Pointing the csproj there keeps CI working with no
+    // Rider installed, and makes local builds independent of which Rider version is on the machine.
+    doFirst {
+        val host = intellijPlatform.platformPath.resolve("lib/ReSharperHost")
+        check(host.toFile().isDirectory) { "ReSharperHost not found in the platform at $host" }
+        commandLine("dotnet", "build", dotnetSolution.asFile.absolutePath,
+            "-c", BuildConfiguration, "--nologo", "-p:RiderHostPath=$host")
+    }
 }
 
 // The backend DLL has to land in the plugin's dotnet/ dir: that is where the ReSharper host looks
