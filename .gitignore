@@ -1,0 +1,12 @@
+bin/
+obj/
+build/
+.gradle/
+.kotlin/
+.idea/
+.intellijPlatform/
+*.user
+
+# Claude scratch: isolated dev IDE sandbox (holds a copy of the Rider licence key),
+# throwaway test project, and build logs. Never commit this.
+Claude/

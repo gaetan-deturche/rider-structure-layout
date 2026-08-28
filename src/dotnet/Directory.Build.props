@@ -1,0 +1,21 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>Latest</LangVersion>
+    <!-- The Rider backend ships facade/duplicate assemblies; identity clashes are expected here. -->
+    <NoWarn>MSB3277</NoWarn>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <DefineConstants>TRACE;DEBUG;JET_MODE_ASSERT</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Override with -p:RiderHostPath=... to build against a different Rider install. -->
+  <PropertyGroup>
+    <RiderHostPath Condition="'$(RiderHostPath)'==''">C:\Program Files\JetBrains\JetBrains Rider 261.22158.211\lib\ReSharperHost</RiderHostPath>
+  </PropertyGroup>
+
+</Project>

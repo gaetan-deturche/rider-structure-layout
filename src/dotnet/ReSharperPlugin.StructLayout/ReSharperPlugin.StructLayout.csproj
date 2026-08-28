@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>ReSharperPlugin.StructLayout</AssemblyName>
+    <RootNamespace>$(AssemblyName)</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <DefineConstants>$(DefineConstants);RIDER</DefineConstants>
+    <EnableDefaultItems>true</EnableDefaultItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Referenced straight from the install: the C++ backend assemblies are not in JetBrains.Rider.SDK. -->
+  <ItemGroup>
+    <!-- Do NOT exclude *.resources.dll here: MSBuild globs are case-insensitive on Windows, so that
+         pattern also swallows JetBrains.ReSharper.Resources.dll (which holds ReadLockCookie). Satellite
+         resource assemblies live in culture subfolders and are not matched by this glob anyway. -->
+    <Reference Include="$(RiderHostPath)\JetBrains.*.dll"
+               Exclude="$(RiderHostPath)\*.ni.dll">
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,30 @@
+<idea-plugin require-restart="true">
+  <id>dev.structlayout</id>
+  <name>Struct Layout</name>
+  <vendor>gaetan.deturche</vendor>
+  <depends>com.intellij.modules.rider</depends>
+
+  <description><![CDATA[
+    <p>Shows the memory layout of a C++ class, struct or union - offsets, sizes, alignment, padding,
+    vtable pointers and bitfields - computed by Rider's own C++ engine under the project's real compile
+    configuration, so the numbers cannot drift from the actual build.</p>
+    <p>Right-click a type name and pick <em>Show Struct Layout</em>, or use Alt+Enter.</p>
+  ]]></description>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="Struct Layout"
+                anchor="bottom"
+                canCloseContents="false"
+                factoryClass="dev.structlayout.StructLayoutToolWindowFactory"/>
+  </extensions>
+
+  <actions>
+    <action id="dev.structlayout.ShowStructLayout"
+            class="dev.structlayout.ShowStructLayoutAction"
+            text="Show Struct Layout"
+            description="Shows the memory layout of the type at the caret">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="ShowIntentionActions"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="alt L"/>
+    </action>
+  </actions>
+</idea-plugin>
