@@ -10,7 +10,8 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <DefineConstants>TRACE;DEBUG;JET_MODE_ASSERT</DefineConstants>
+    <!-- STRUCT_LAYOUT_DIAGNOSTICS gates the layout dump: dev builds only, compiled out of Release. -->
+    <DefineConstants>TRACE;DEBUG;JET_MODE_ASSERT;STRUCT_LAYOUT_DIAGNOSTICS</DefineConstants>
   </PropertyGroup>
 
   <!-- Override with -p:RiderHostPath=... to build against a different Rider install. -->

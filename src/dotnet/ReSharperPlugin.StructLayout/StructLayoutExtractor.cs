@@ -38,15 +38,16 @@ namespace ReSharperPlugin.StructLayout
             result.TotalPadding = collector.TotalPadding;
             result.Interrupted = collector.WasInterrupted;
 
-            if (Environment.GetEnvironmentVariable("STRUCT_LAYOUT_DUMP") != null)
-                Dump(result);
-
+#if STRUCT_LAYOUT_DIAGNOSTICS
+            Dump(result);
+#endif
             return result;
         }
 
-        // Diagnostic, opt-in via the STRUCT_LAYOUT_DUMP environment variable: every entry the engine
-        // reported, including ones whose size it could not compute. Written to
-        // %TEMP%\struct-layout-last.txt so a failing case can be inspected without a debugger.
+#if STRUCT_LAYOUT_DIAGNOSTICS
+        // Diagnostic, dev builds only (STRUCT_LAYOUT_DIAGNOSTICS, set for Debug in
+        // Directory.Build.props): every entry the engine reported, including ones whose size it
+        // could not compute. Written to %TEMP%\struct-layout-last.txt.
         private static void Dump(LayoutTable layout)
         {
             try
@@ -73,5 +74,6 @@ namespace ReSharperPlugin.StructLayout
                 // diagnostics must never break the feature
             }
         }
+#endif
     }
 }

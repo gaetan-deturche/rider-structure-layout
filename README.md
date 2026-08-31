@@ -50,5 +50,6 @@ downloads. See `CLAUDE.md` for the API this is built on and the traps worth know
 
 ## Diagnostics
 
-Set `STRUCT_LAYOUT_DUMP=1` before starting Rider to have every layout written to
-`%TEMP%\struct-layout-last.txt`, including entries whose size the engine could not compute.
+Debug builds (`STRUCT_LAYOUT_DIAGNOSTICS`, set for the Debug configuration) write every layout to
+`%TEMP%\struct-layout-last.txt`, including entries whose size the engine could not compute. Released
+builds are compiled as Release, so the dump is not present in them at all.

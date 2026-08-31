@@ -45,7 +45,9 @@ jobs:
 
       # buildPlugin also builds the .NET backend, against the ReSharperHost assemblies inside the
       # Rider distribution Gradle downloads - no Rider installation is required on the runner.
-      - run: ./gradlew --no-daemon --console=plain buildPlugin "-Dorg.gradle.java.installations.paths=$JAVA_HOME"
+      # Release configuration: STRUCT_LAYOUT_DIAGNOSTICS is a Debug-only define, so the layout dump is
+      # compiled out of anything published from here.
+      - run: ./gradlew --no-daemon --console=plain buildPlugin -PBuildConfiguration=Release "-Dorg.gradle.java.installations.paths=$JAVA_HOME"
 
       - name: Check both halves made it into the zip
         run: |
