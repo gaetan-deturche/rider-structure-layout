@@ -75,7 +75,7 @@ namespace ReSharperPlugin.StructLayout
             return null;
         }
 
-        private static LayoutResult ToProtocol(LayoutTable layout)
+        internal static LayoutResult ToProtocol(LayoutTable layout)
         {
             if (layout == null)
                 return null;

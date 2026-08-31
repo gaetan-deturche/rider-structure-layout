@@ -19,7 +19,8 @@ import kotlin.jvm.JvmStatic
  * #### Generated from [StructLayoutModel.kt:9]
  */
 class StructLayoutModel private constructor(
-    private val _getStructLayout: RdCall<LayoutRequest, LayoutResult?>
+    private val _getStructLayout: RdCall<LayoutRequest, LayoutResult?>,
+    private val _showLayout: RdSignal<LayoutResult>
 ) : RdExtBase() {
     //companion
     
@@ -38,7 +39,7 @@ class StructLayoutModel private constructor(
         
         private val __LayoutResultNullableSerializer = LayoutResult.nullable()
         
-        const val serializationHash = -9203206555518955769L
+        const val serializationHash = -7389362328027469291L
         
     }
     override val serializersOwner: ISerializersOwner get() = StructLayoutModel
@@ -50,20 +51,28 @@ class StructLayoutModel private constructor(
      * Computes the memory layout of the type at a caret position, using the C++ engine's own calculator.
      */
     val getStructLayout: IRdCall<LayoutRequest, LayoutResult?> get() = _getStructLayout
+    
+    /**
+     * Backend -> frontend push, so the Alt+Enter context action (which already holds the resolved type) opens the same tool window as the editor menu instead of a text popup.
+     */
+    val showLayout: IAsyncSignal<LayoutResult> get() = _showLayout
     //methods
     //initializer
     init {
         _getStructLayout.async = true
+        _showLayout.async = true
     }
     
     init {
         bindableChildren.add("getStructLayout" to _getStructLayout)
+        bindableChildren.add("showLayout" to _showLayout)
     }
     
     //secondary constructor
     internal constructor(
     ) : this(
-        RdCall<LayoutRequest, LayoutResult?>(LayoutRequest, __LayoutResultNullableSerializer)
+        RdCall<LayoutRequest, LayoutResult?>(LayoutRequest, __LayoutResultNullableSerializer),
+        RdSignal<LayoutResult>(LayoutResult)
     )
     
     //equals trait
@@ -73,13 +82,15 @@ class StructLayoutModel private constructor(
         printer.println("StructLayoutModel (")
         printer.indent {
             print("getStructLayout = "); _getStructLayout.print(printer); println()
+            print("showLayout = "); _showLayout.print(printer); println()
         }
         printer.print(")")
     }
     //deepClone
     override fun deepClone(): StructLayoutModel   {
         return StructLayoutModel(
-            _getStructLayout.deepClonePolymorphic()
+            _getStructLayout.deepClonePolymorphic(),
+            _showLayout.deepClonePolymorphic()
         )
     }
     //contexts

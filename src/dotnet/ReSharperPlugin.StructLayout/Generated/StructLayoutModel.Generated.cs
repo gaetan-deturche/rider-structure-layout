@@ -48,25 +48,37 @@ namespace JetBrains.Rider.Model
     /// </summary>
     [NotNull] public IRdEndpoint<LayoutRequest, LayoutResult> GetStructLayout => _GetStructLayout;
     
+    /// <summary>
+    /// Backend -> frontend push, so the Alt+Enter context action (which already holds the resolved type) opens the same tool window as the editor menu instead of a text popup.
+    /// </summary>
+    [NotNull] public ISignal<LayoutResult> ShowLayout => _ShowLayout;
+    
     //private fields
     [NotNull] private readonly RdCall<LayoutRequest, LayoutResult> _GetStructLayout;
+    [NotNull] private readonly RdSignal<LayoutResult> _ShowLayout;
     
     //primary constructor
     private StructLayoutModel(
-      [NotNull] RdCall<LayoutRequest, LayoutResult> getStructLayout
+      [NotNull] RdCall<LayoutRequest, LayoutResult> getStructLayout,
+      [NotNull] RdSignal<LayoutResult> showLayout
     )
     {
       if (getStructLayout == null) throw new ArgumentNullException("getStructLayout");
+      if (showLayout == null) throw new ArgumentNullException("showLayout");
       
       _GetStructLayout = getStructLayout;
+      _ShowLayout = showLayout;
       _GetStructLayout.Async = true;
+      _ShowLayout.Async = true;
       _GetStructLayout.ValueCanBeNull = true;
       BindableChildren.Add(new KeyValuePair<string, object>("getStructLayout", _GetStructLayout));
+      BindableChildren.Add(new KeyValuePair<string, object>("showLayout", _ShowLayout));
     }
     //secondary constructor
     internal StructLayoutModel (
     ) : this (
-      new RdCall<LayoutRequest, LayoutResult>(LayoutRequest.Read, LayoutRequest.Write, ReadLayoutResultNullable, WriteLayoutResultNullable)
+      new RdCall<LayoutRequest, LayoutResult>(LayoutRequest.Read, LayoutRequest.Write, ReadLayoutResultNullable, WriteLayoutResultNullable),
+      new RdSignal<LayoutResult>(LayoutResult.Read, LayoutResult.Write)
     ) {}
     //deconstruct trait
     //statics
@@ -75,7 +87,7 @@ namespace JetBrains.Rider.Model
     
     public static  CtxWriteDelegate<LayoutResult> WriteLayoutResultNullable = LayoutResult.Write.NullableClass();
     
-    protected override long SerializationHash => -9203206555518955769L;
+    protected override long SerializationHash => -7389362328027469291L;
     
     protected override Action<ISerializers> Register => RegisterDeclaredTypesSerializers;
     public static void RegisterDeclaredTypesSerializers(ISerializers serializers)
@@ -97,6 +109,7 @@ namespace JetBrains.Rider.Model
       printer.Println("StructLayoutModel (");
       using (printer.IndentCookie()) {
         printer.Print("getStructLayout = "); _GetStructLayout.PrintEx(printer); printer.Println();
+        printer.Print("showLayout = "); _ShowLayout.PrintEx(printer); printer.Println();
       }
       printer.Print(")");
     }

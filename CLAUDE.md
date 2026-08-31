@@ -74,27 +74,67 @@ confirms the backend picked up the DLL, and the timestamp tells you whether it i
 ## Build
 
 `JetBrains.ReSharper.Cpp.dll` is **not** in the `JetBrains.Rider.SDK` NuGet package, so the csproj
-references `$(RiderHostPath)\JetBrains.*.dll` straight out of the install (`Private=false`,
-`NoWarn=MSB3277` for the expected identity clashes). Backend targets **net472** (the Rider host is still
-.NET Framework: `Cpp.dll` references `mscorlib`, not `System.Private.CoreLib`).
+references `$(RiderHostPath)\JetBrains.*.dll` (`Private=false`, `NoWarn=MSB3277` for the expected
+identity clashes). `buildBackend` points `RiderHostPath` at `intellijPlatform.platformPath/lib/ReSharperHost`
+— the Rider distribution Gradle downloads — so **no local Rider install is required**, which is what makes
+CI work. Backend targets **net472** (the host is still .NET Framework: `Cpp.dll` references `mscorlib`).
+
+Do NOT exclude `*.resources.dll` from that reference glob: MSBuild globs are case-insensitive on Windows,
+so it also swallows `JetBrains.ReSharper.Resources.dll` (which holds `ReadLockCookie`).
 
 ```powershell
-.\deploy.ps1        # builds + installs unpacked into %APPDATA%\JetBrains\Rider2026.2\plugins\struct-layout
+.\deploy.ps1        # builds all three parts, installs unpacked into the Claude\dev-ide sandbox
+Claudeun-dev-rider.ps1   # isolated Rider on that sandbox, safe to run beside the real one
 ```
 
-Rider must be **restarted** after deploying — backend plugins load once at host startup.
+Rider must be **restarted** after deploying — backend plugins load once at host startup, and the
+ReSharper backend process outlives the frontend, keeping the DLL locked for a few seconds after a kill.
 
 `global.json` pins the SDK to **9.0.308** with `rollForward: disable`: see
 [[dotnet-sdk-9-0-312-missing-runtime]] — SDK 9.0.312 cannot run on this machine.
 
-## Status
+## Traps that cost a debug cycle each
 
-Stage 1 (done, compiles clean): backend-only extractor + Alt+Enter context action, dumps an ASCII table
-via `MessageBox.ShowInfo`. Not yet run inside Rider.
+- **`[SolutionComponent(Instantiation.Demand*)]` never runs.** A protocol handler registered in a
+  component's constructor needs `Container*` (eager) instantiation, or nothing constructs it, the
+  `RdCall` has no handler, and the frontend's call silently never completes — no exception anywhere.
+- **rdgen ignores the Kotlin `namespace`.** The generated Kotlin lands in `com.jetbrains.rd.ide.model`
+  (the model root's namespace) while the C# side honours `JetBrains.Rider.Model`. Import accordingly.
+- **Rider APIs need `bundledModule(...)`.** `project.solution` lives in `intellij.rider.rdclient.dotnet`;
+  with the 2.x Gradle plugin those product modules are not on the compile classpath by default.
+- **`buildPlugin` zips `prepareSandbox`'s output**, so the backend DLL copy belongs in the sandbox task
+  only — adding it to both produces a duplicate-entry failure.
+- **`gradlew` must be mode 100755 in the index** (`git update-index --chmod=+x gradlew`) or CI cannot
+  run it.
+- **Two entry points must not render differently.** The Alt+Enter context action originally showed a
+  `MessageBox` text dump while right-click opened the tool window; a colleague hit the documented
+  Alt+Enter and concluded the release had no UI. It now fires the `showLayout` signal instead.
 
-Stage 2 (not started): rdgen protocol + Kotlin tool window with the graphical bar view, plus recursion
-into member struct types (needs a declarator → type-entity lookup; `CppQualType.GetSizeAndAlignment`
-and `CppSizeAndAlignmentUtil.ReferencedTypeResolveEntity` are the leads).
+## Unreal notes
+
+- `USTRUCT()` / `UPROPERTY()` add **no data members**. `GENERATED_BODY()` expands to typedefs, statics,
+  friends and constructors only, so a plain USTRUCT's layout is exactly its declared members. Hidden
+  state exists only on `UObject`-derived classes (vfptr + `ObjectFlags`/`InternalIndex`/`ClassPrivate`/
+  `NamePrivate`/`OuterPrivate`) and arrives through **base recursion**.
+- `FName` is **12 bytes in editor builds** (`WITH_CASE_PRESERVING_NAME` adds `DisplayIndex`), 8 in
+  shipping. Seeing 12 is proof the layout follows the real compile config.
+- A nested class must be resolved in **its own view pos**: a UE base lives in another header and may be
+  incomplete in the derived class's view pos, in which case its walk reports nothing and every inherited
+  member silently disappears (`StructLayoutCollector.Recurse`).
+- Member-type recursion uses `ICppDeclaratorResolveEntity.GetCppType()` then
+  `CppTypesUtil.{IsArray, GetArrayInnerTypeRecursively, IsResolvedClassType, GetResolvedClassTypeEntity}`
+  — all public. Capped at 4 levels / 2000 rows because UE types nest deeply through value members.
+
+## Status (0.2.1)
+
+Working: backend extractor, rdgen protocol, right-click / Alt+L / Alt+Enter all opening one tool window
+with a byte-matrix view (per-byte grid, hex or decimal offsets, struct box, hatched padding, stacked
+lanes for unions, merged shapes for wrapped members and groups, depth-adaptive row height, hover details,
+double-click to expand a struct-typed member). Verified against `cl /d1reportSingleClassLayout` and on
+Unreal (`UObject` chain).
+
+Not done: per-member "go to declaration" from the view, a legend, and a
+`STRUCT_LAYOUT_DUMP`-free way to inspect what the engine reported.
 
 ## Tools that made this tractable
 

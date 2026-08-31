@@ -8,10 +8,12 @@
     <p>Shows the memory layout of a C++ class, struct or union - offsets, sizes, alignment, padding,
     vtable pointers and bitfields - computed by Rider's own C++ engine under the project's real compile
     configuration, so the numbers cannot drift from the actual build.</p>
-    <p>Right-click a type name and pick <em>Show Struct Layout</em>, or use Alt+Enter.</p>
+    <p>Right-click a type name and pick <em>Show Struct Layout</em>, or press <em>Alt+L</em>, or use
+    Alt+Enter. All three open the same view.</p>
   ]]></description>
 
   <extensions defaultExtensionNs="com.intellij">
+    <postStartupActivity implementation="dev.structlayout.StructLayoutSubscriber"/>
     <toolWindow id="Struct Layout"
                 anchor="bottom"
                 canCloseContents="false"

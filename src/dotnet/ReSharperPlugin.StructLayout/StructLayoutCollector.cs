@@ -20,6 +20,12 @@ namespace ReSharperPlugin.StructLayout
 
         // OnPadding only reports a byte count, so the gap's position is tracked as the walk proceeds.
         private int myLastEnd;
+        private bool myEmptyNested;
+
+        // Unreal types nest deeply through value members; without caps one walk can produce thousands
+        // of rows and the picture becomes useless anyway.
+        private const int MaxMemberDepth = 4;
+        private const int MaxRows = 2000;
 
         public StructLayoutCollector(in CppTypeContext typeContext, List<LayoutEntry> rows, int baseOffset, int depth)
         {
@@ -31,6 +37,8 @@ namespace ReSharperPlugin.StructLayout
         }
 
         public bool WasInterrupted => myInterrupted;
+
+        public bool HadEmptyNested => myEmptyNested;
 
         public int TotalPadding => myPadding;
 
@@ -67,14 +75,58 @@ namespace ReSharperPlugin.StructLayout
             return clazz.BuildLayout(in myTypeContext, this, true);
         }
 
+        // A nested class - especially a base declared in another header, which is the norm in Unreal - is
+        // not necessarily complete in the OUTER class's view pos. Resolving it in its own view pos first
+        // is what the top-level extractor does; reusing the parent's context makes such a base walk
+        // report nothing, so every inherited member silently disappears.
         private void Recurse(ICppClassResolveEntity nested, int absoluteOffset)
         {
-            StructLayoutCollector child = new StructLayoutCollector(in myTypeContext, myRows, absoluteOffset, myDepth + 1);
+            CppTypeContext context = myTypeContext;
+
+            CppFileResolveEntitiesCache nestedCache = nested.GetRootFileResolveCache();
+            if (nestedCache != null)
+            {
+                CppViewPos nestedViewPos = CppViewPos.Full(nestedCache.GlobalNamespace);
+                if (nested.IsClassComplete(in nestedViewPos))
+                    context = new CppTypeContext(nestedViewPos, nestedCache.TypeFactory);
+            }
+
+            int before = myRows.Count;
+            StructLayoutCollector child = new StructLayoutCollector(in context, myRows, absoluteOffset, myDepth + 1);
             child.Walk(nested);
+
+            // a nested walk that reports nothing means its members are missing from the picture
+            if (myRows.Count == before)
+                myEmptyNested = true;
 
             myPadding += child.myPadding;
             if (child.myInterrupted)
                 myInterrupted = true;
+        }
+
+        // A member whose TYPE is a class/struct gets its own members walked, so the view can open an
+        // opaque block (FName, FVector, ...) instead of stopping at it. Bases and anonymous aggregates
+        // hand over an entity directly; a declarator only gives a type, hence the extra hop.
+        private void TryRecurseIntoMemberType(ICppDeclaratorResolveEntity declarator, int absoluteOffset)
+        {
+            if (declarator == null || myDepth >= MaxMemberDepth || myRows.Count >= MaxRows)
+                return;
+
+            CppQualType memberType = declarator.GetCppType();
+
+            // an array of structs lays out as its element type repeated; show the element's members
+            CppQualType valueType = CppTypesUtil.IsArray(memberType)
+                ? CppTypesUtil.GetArrayInnerTypeRecursively(memberType)
+                : memberType;
+
+            if (!CppTypesUtil.IsResolvedClassType(valueType))
+                return;
+
+            ICppClassResolveEntity clazz = CppTypesUtil.GetResolvedClassTypeEntity(valueType);
+            if (clazz == null)
+                return;
+
+            Recurse(clazz, absoluteOffset);
         }
 
         private static string NameOf(ICppResolveEntity entity)
@@ -128,6 +180,7 @@ namespace ReSharperPlugin.StructLayout
 
                     case ICppClassLayoutBuilder.EntryKind.Declarator:
                         Emit(LayoutEntryKind.Field, NameOf(entry.Entity), absolute, layout);
+                        myOwner.TryRecurseIntoMemberType(entry.Entity as ICppDeclaratorResolveEntity, absolute);
                         return;
                 }
             }

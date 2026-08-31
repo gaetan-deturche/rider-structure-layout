@@ -51,5 +51,10 @@ object StructLayoutModel : Ext(SolutionModel.Solution) {
         call("getStructLayout", LayoutRequest, LayoutResult.nullable)
             .async
             .documentation = "Computes the memory layout of the type at a caret position, using the C++ engine's own calculator."
+
+        signal("showLayout", LayoutResult)
+            .async
+            .documentation = "Backend -> frontend push, so the Alt+Enter context action (which already holds the " +
+                "resolved type) opens the same tool window as the editor menu instead of a text popup."
     }
 }
