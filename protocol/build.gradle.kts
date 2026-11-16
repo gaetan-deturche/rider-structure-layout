@@ -2,7 +2,7 @@ import com.jetbrains.rd.generator.gradle.RdGenTask
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
-    id("com.jetbrains.rdgen") version "2026.2.1"
+    id("com.jetbrains.rdgen") version "2026.3.2"
 }
 
 repositories {
@@ -14,7 +14,7 @@ dependencies {
     // Explicit: gradle.properties disables the default stdlib dependency for the IDE plugin,
     // but this is a plain JVM project and nothing provides the stdlib at compile time.
     implementation(kotlin("stdlib"))
-    implementation("com.jetbrains.rd:rd-gen:2026.2.1")
+    implementation("com.jetbrains.rd:rd-gen:2026.3.2")
     // rider-model.jar, published by the root project
     implementation(project(mapOf("path" to ":", "configuration" to "riderModel")))
 }

@@ -36,7 +36,7 @@ Hover | name, kind, offset in hex and decimal, size, alignment, byte range, nest
 
 Grab the zip from [Releases](https://github.com/gaetan-deturche/rider-structure-layout/releases) →
 Settings → Plugins → gear → **Install Plugin from Disk**, then restart Rider (the backend half loads at
-host startup). Requires Rider 2026.2.
+host startup). Requires Rider 2026.3.
 
 ## Building
 

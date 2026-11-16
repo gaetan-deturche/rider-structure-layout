@@ -9,6 +9,22 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# Folder names lie: an in-place update keeps the old name (the folder called
+# "JetBrains Rider 261.22158.211" held 2026.2.1 and then 2026.3). Pick by the build number inside.
+function Resolve-RiderHome {
+    $candidates = Get-ChildItem "C:\Program Files\JetBrains" -Directory -Filter "JetBrains Rider*" -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            $info = Join-Path $_.FullName "product-info.json"
+            if (Test-Path $info) {
+                $json = Get-Content $info -Raw | ConvertFrom-Json
+                [pscustomobject]@{ Path = $_.FullName; Build = [int](($json.buildNumber -split '\.')[0]); Version = $json.version }
+            }
+        }
+    $newest = $candidates | Sort-Object Build -Descending | Select-Object -First 1
+    if (-not $newest) { throw "no Rider installation found under C:\Program Files\JetBrains" }
+    $newest
+}
 $root = $PSScriptRoot
 
 # TMP must not sit under AppData: AF_UNIX sockets fail there inside Claude Code's MSIX process tree,
@@ -18,7 +34,9 @@ New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 $env:TMP = $tmp
 $env:TEMP = $tmp
 if (-not $env:JAVA_HOME) {
-    $env:JAVA_HOME = "C:\Program Files\JetBrains\JetBrains Rider 261.22158.211\jbr"
+    $rider = Resolve-RiderHome
+    $env:JAVA_HOME = Join-Path $rider.Path "jbr"
+    Write-Host "JAVA_HOME from Rider $($rider.Version): $env:JAVA_HOME"
 }
 
 Push-Location $root

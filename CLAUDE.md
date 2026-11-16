@@ -11,7 +11,9 @@ build. We drive the engine's own calculator instead.
 ## The API this is built on
 
 All public, all in `JetBrains.ReSharper.Cpp.dll` (namespace `JetBrains.ReSharper.Psi.Cpp.*`).
-Undocumented, but signatures are byte-identical between Rider 2025.3.3 and 2026.2.1.
+Undocumented, but signatures are byte-identical across Rider 2025.3.3, 2026.2.1 and 2026.3 (build 263) —
+the 2026.3 upgrade needed **no source change at all**, and rdgen 2026.3.2 regenerated the protocol
+byte-identically. Re-verify with `tools/apiindex` before assuming that holds for the next version.
 
 ```csharp
 // the entry point - walks a class and reports every entry to our visitor
@@ -46,9 +48,9 @@ public interface ICppClassLayoutBuilder {
   the size/offset tooltip Rider already shows, and `GetMemberLayoutForPresentation` /
   `GetSizeAndAlignmentForPresentation` are usable public shortcuts for single members.
 
-**Known gap:** `GetSizeAndAlignmentForPresentation` refuses types where `HasTemplateParents()` is true.
-Whether that also excludes concrete instantiations like `TArray<int32>` is **not yet verified** — it
-matters for UE work and is the first thing to test.
+**Resolved:** `GetSizeAndAlignmentForPresentation` refuses types where `HasTemplateParents()` is true,
+but that does NOT exclude concrete instantiations — `TArray<...>` and friends lay out fine in a real UE
+project (confirmed on Rematch). We drive `BuildLayout` directly anyway, not that presentation helper.
 
 ## Trap: zones silently disable everything
 
@@ -80,11 +82,20 @@ identity clashes). `buildBackend` points `RiderHostPath` at `intellijPlatform.pl
 CI work. Backend targets **net472** (the host is still .NET Framework: `Cpp.dll` references `mscorlib`).
 
 Do NOT exclude `*.resources.dll` from that reference glob: MSBuild globs are case-insensitive on Windows,
-so it also swallows `JetBrains.ReSharper.Resources.dll` (which holds `ReadLockCookie`).
+so it also swallows `JetBrains.ReSharper.Resources.dll` (which holds `ReadLockCookie`). That same glob is
+what absorbed `ILanguageCppZone` moving from `JetBrains.ReSharper.Psi.dll` to `JetBrains.ReSharper.Cpp.dll`
+in 2026.3 without a code change.
+
+**Upgrading to a new Rider:** bump `platformVersion` + `pluginSinceBuild`/`pluginUntilBuild` in
+`gradle.properties` and the rdgen version in `protocol/build.gradle.kts` (it must match the platform's rd
+protocol), then rebuild. `deploy.ps1` and `Claudeun-dev-rider.ps1` find Rider by reading
+`product-info.json` and taking the highest build — **never trust the install folder's name**, an in-place
+update keeps it (the folder `JetBrains Rider 261.22158.211` held 2026.2.1, then 2026.3).
 
 ```powershell
 .\deploy.ps1        # builds all three parts, installs unpacked into the Claude\dev-ide sandbox
-Claudeun-dev-rider.ps1   # isolated Rider on that sandbox, safe to run beside the real one
+Claude
+un-dev-rider.ps1   # isolated Rider on that sandbox, safe to run beside the real one
 ```
 
 Rider must be **restarted** after deploying — backend plugins load once at host startup, and the
@@ -125,16 +136,15 @@ ReSharper backend process outlives the frontend, keeping the DLL locked for a fe
   `CppTypesUtil.{IsArray, GetArrayInnerTypeRecursively, IsResolvedClassType, GetResolvedClassTypeEntity}`
   — all public. Capped at 4 levels / 2000 rows because UE types nest deeply through value members.
 
-## Status (0.2.1)
+## Status (0.3.0)
 
-Working: backend extractor, rdgen protocol, right-click / Alt+L / Alt+Enter all opening one tool window
-with a byte-matrix view (per-byte grid, hex or decimal offsets, struct box, hatched padding, stacked
-lanes for unions, merged shapes for wrapped members and groups, depth-adaptive row height, hover details,
-double-click to expand a struct-typed member). Verified against `cl /d1reportSingleClassLayout` and on
-Unreal (`UObject` chain).
+Targets **Rider 2026.3** (build 263). Working: backend extractor, rdgen protocol, right-click / Alt+L /
+Alt+Enter all opening one tool window with a byte-matrix view (per-byte grid, hex or decimal offsets,
+struct box, hatched padding, stacked lanes for unions, merged shapes for wrapped members and groups,
+depth-adaptive row height, hover details, double-click to expand a struct-typed member). Verified against
+`cl /d1reportSingleClassLayout` and on Unreal (`UObject` chain, Rematch).
 
-Not done: per-member "go to declaration" from the view, a legend, and a
-`STRUCT_LAYOUT_DUMP`-free way to inspect what the engine reported.
+Not done: per-member "go to declaration" from the view, and a legend.
 
 ## Tools that made this tractable
 
