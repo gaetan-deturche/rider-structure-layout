@@ -2,9 +2,10 @@
 # into a Rider config dir. Rider must be RESTARTED afterwards: the backend half is loaded once at
 # host startup.
 #
-# Default target is the isolated dev instance under Claude\dev-ide, not the real Rider.
+# Default target is the shared plugin sandbox (rider-plugin-sandbox skill), not the real Rider; its deploy
+# needs the sandbox owner lock and a stopped sandbox. -RiderConfig installs into another config dir instead.
 param(
-    [string]$RiderConfig = "$PSScriptRoot\Claude\dev-ide\config",
+    [string]$RiderConfig,
     [string]$Configuration = "Debug"
 )
 
@@ -50,6 +51,14 @@ try {
 $zip = Get-ChildItem (Join-Path $root "build\distributions") -Filter "*.zip" |
        Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if (-not $zip) { throw "no plugin zip produced" }
+
+if (-not $RiderConfig) {
+    $sandboxDeploy = "$env:USERPROFILE\.claude\skills\rider-plugin-sandbox\scripts\deploy.ps1"
+    if (-not (Test-Path $sandboxDeploy)) { throw "no shared sandbox ($sandboxDeploy); pass -RiderConfig <config dir>" }
+    & $sandboxDeploy -Zip $zip.FullName
+    if ($LASTEXITCODE -ne 0) { throw "sandbox deploy refused (exit $LASTEXITCODE)" }
+    return
+}
 
 $plugins = Join-Path $RiderConfig "plugins"
 $target = Join-Path $plugins "struct-layout"

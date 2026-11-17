@@ -88,14 +88,17 @@ in 2026.3 without a code change.
 
 **Upgrading to a new Rider:** bump `platformVersion` + `pluginSinceBuild`/`pluginUntilBuild` in
 `gradle.properties` and the rdgen version in `protocol/build.gradle.kts` (it must match the platform's rd
-protocol), then rebuild. `deploy.ps1` and `Claude\run-dev-rider.ps1` find Rider by reading
+protocol), then rebuild. `deploy.ps1` and the sandbox scripts find Rider by reading
 `product-info.json` and taking the highest build — **never trust the install folder's name**, an in-place
 update keeps it (the folder `JetBrains Rider 261.22158.211` held 2026.2.1, then 2026.3).
 
 ```powershell
-.\deploy.ps1        # builds all three parts, installs unpacked into the Claude\dev-ide sandbox
-Claude\run-dev-rider.ps1   # isolated Rider on that sandbox, safe to run beside the real one
+.\deploy.ps1        # builds all three parts, installs into the shared plugin sandbox (needs its lock, sandbox stopped)
 ```
+
+The sandbox Rider (start/stop, owner lock, shared with the other plugin sessions) is the user-level
+`rider-plugin-sandbox` skill, root `C:\Dev\RiderPluginSandbox`. `.\deploy.ps1 -RiderConfig <dir>` installs
+into any other config dir instead.
 
 Rider must be **restarted** after deploying — backend plugins load once at host startup, and the
 ReSharper backend process outlives the frontend, keeping the DLL locked for a few seconds after a kill.
