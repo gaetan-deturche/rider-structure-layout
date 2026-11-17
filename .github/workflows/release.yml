@@ -79,8 +79,9 @@ jobs:
           ZIP=$(basename "$(ls build/distributions/*.zip | head -1)")
 
           # Re-running an older tag's workflow would otherwise point the XML back at that old release.
-          # checkout fetches no tags by default, hence the explicit fetch.
-          git fetch --tags --quiet origin
+          # checkout fetches no tags by default, hence the explicit fetch. --force: checkout stores the pushed
+          # annotated tag as a lightweight one, so without it the fetch is refused ("would clobber existing tag").
+          git fetch --tags --force --quiet origin
           LATEST=$(git tag --list 'v*' --sort=-v:refname | head -n1)
           if [ "$GITHUB_REF_NAME" != "$LATEST" ]; then
             echo "$GITHUB_REF_NAME is not the newest tag ($LATEST); leaving updatePlugins.xml alone"
