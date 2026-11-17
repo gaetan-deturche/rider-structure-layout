@@ -94,12 +94,15 @@ update keeps it (the folder `JetBrains Rider 261.22158.211` held 2026.2.1, then 
 
 ```powershell
 .\deploy.ps1        # builds all three parts, installs unpacked into the Claude\dev-ide sandbox
-Claude
-un-dev-rider.ps1   # isolated Rider on that sandbox, safe to run beside the real one
+Claudeun-dev-rider.ps1   # isolated Rider on that sandbox, safe to run beside the real one
 ```
 
 Rider must be **restarted** after deploying — backend plugins load once at host startup, and the
 ReSharper backend process outlives the frontend, keeping the DLL locked for a few seconds after a kill.
+
+**Auto-update repository:** `https://raw.githubusercontent.com/gaetan-deturche/rider-structure-layout/master/updatePlugins.xml`
+(add it under Settings | Plugins | gear | Manage Plugin Repositories). `release.yml` regenerates it on
+every `v*` tag — a plugin installed from disk never auto-updates, one installed from this repository does.
 
 `global.json` pins the SDK to **9.0.308** with `rollForward: disable`: see
 [[dotnet-sdk-9-0-312-missing-runtime]] — SDK 9.0.312 cannot run on this machine.
