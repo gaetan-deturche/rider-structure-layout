@@ -20,6 +20,11 @@
                 factoryClass="dev.structlayout.StructLayoutToolWindowFactory"/>
   </extensions>
 
+  <applicationListeners>
+    <listener class="dev.structlayout.StructLayoutUpdateSource"
+              topic="com.intellij.ide.AppLifecycleListener"/>
+  </applicationListeners>
+
   <actions>
     <action id="dev.structlayout.ShowStructLayout"
             class="dev.structlayout.ShowStructLayoutAction"
